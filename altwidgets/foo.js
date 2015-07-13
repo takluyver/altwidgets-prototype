@@ -9,7 +9,19 @@ for (i = 0; i < widget_defs.length; i++) {
     state[wd.name] = wd.value;
 }
 
-var enablers = [];
+var widgets = [];
+
+function enable_widgets() {
+    for (var i = 0; i < widgets.length; i++) {
+        widgets[i].enable();
+    }
+}
+
+function disable_widgets() {
+    for (var i = 0; i < widgets.length; i++) {
+        widgets[i].disable();
+    }
+}
 
 var comm = null;
 
@@ -23,9 +35,7 @@ function connect() {
         // we need to wait for this confirmation message to enable widgets.
         var data = msg.content.data;
         if (data.kind === 'connected') {
-            for (var i = 0; i < enablers.length; i++) {
-                enablers[i]();
-            }
+            enable_widgets();
         } else {
             // kind: 'result'
             output_area.text(data.data['text/plain']);
@@ -35,9 +45,11 @@ function connect() {
 
 if (IPython.notebook.kernel) {
     connect();
+    IPython.notebook.kernel.events.on('kernel_restarting.Kernel', disable_widgets);
 } else {
     require(['base/js/events'], function(events) {
         events.on('kernel_connected.Kernel', connect);
+        events.on('kernel_restarting.Kernel', disable_widgets);
     });
 }
 
@@ -53,8 +65,9 @@ var widget_factories = {
             },
             disabled: true
         }).css({'max-width': '30em', margin: '1em'});
-        return {dom: control, enable: function() {
-            control.slider('enable');
+        return {dom: control, js: {
+            enable: function() {control.slider('enable');},
+            disable: function() {control.slider('disable');}
         }}
     }
 };
@@ -77,7 +90,7 @@ for (i = 0; i < widget_defs.length; i++) {
     wd = widget_defs[i];
     var w = widget_factories[wd.kind](wd);
     widget_area.append(w.dom);
-    enablers.push(w.enable);
+    widgets.push(w.js);
 }
 widget_area.append(output_area);
 
