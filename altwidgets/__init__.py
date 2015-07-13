@@ -18,7 +18,7 @@ def altwidget_comm_target(comm, open_msg):
         return comm.close()
 
     comm.on_msg(w.handle_msg)
-    w.call_callback(data['data'], comm)
+    comm.send({'kind': 'connected'})
 
 
 ip.kernel.comm_manager.register_target('altwidget', altwidget_comm_target)
@@ -43,14 +43,24 @@ class Replier:
             'metadata': md_dict,
         })
 
+# TODO: Nicer API
 def interact(function, widget_defs):
     r = Replier(function)
     awid = str(uuid.uuid4())
     registry[awid] = r
 
+    initial_kwargs = {w['name']: w['value'] for w in widget_defs}
+    initial_result = function(**initial_kwargs)
+    format_dict, md_dict = ip.display_formatter.format(initial_result)
+
     js_definitions = ("var awid = {!r};\n"
-                      "var widget_defs = {};\n")\
-                .format(awid, json.dumps(widget_defs, sort_keys=True))
+                      "var widget_defs = {};\n"
+                      "var starting_result = {};\n")\
+                .format(awid,
+                        json.dumps(widget_defs, sort_keys=True),
+                        json.dumps({'data': format_dict, 'metadata': md_dict},
+                                   sort_keys=True)
+                       )
 
     js_file = os.path.join(os.path.dirname(__file__), 'foo.js')
     with open(js_file) as f:

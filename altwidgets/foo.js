@@ -15,13 +15,21 @@ var comm = null;
 
 function connect() {
     comm = IPython.notebook.kernel.comm_manager.new_comm('altwidget',{
-        awid: awid,
-        data: state
+        awid: awid
     });
 
     comm.on_msg(function(msg) {
-        var data = msg.content.data.data;
-        output_area.text(data['text/plain']);
+        // We can open the comm even if the kernel doesn't know the awid, so
+        // we need to wait for this confirmation message to enable widgets.
+        var data = msg.content.data;
+        if (data.kind === 'connected') {
+            for (var i = 0; i < enablers.length; i++) {
+                enablers[i]();
+            }
+        } else {
+            // kind: 'result'
+            output_area.text(data.data['text/plain']);
+        }
     });
 }
 
@@ -29,12 +37,7 @@ if (IPython.notebook.kernel) {
     connect();
 } else {
     require(['base/js/events'], function(events) {
-        events.on('kernel_connected.Kernel', function () {
-            connect();
-            for (var i = 0; i < enablers.length; i++) {
-                enablers[i]();
-            }
-        });
+        events.on('kernel_connected.Kernel', connect);
     });
 }
 
@@ -48,7 +51,7 @@ var widget_factories = {
             change: function(event, ui) {
                 update_state(wd.name, ui.value);
             },
-            disabled: (!comm)
+            disabled: true
         }).css({'max-width': '30em', margin: '1em'});
         return {dom: control, enable: function() {
             control.slider('enable');
@@ -56,7 +59,7 @@ var widget_factories = {
     }
 };
 
-var output_area = $('<div>');
+var output_area = $('<div>').text(starting_result['data']['text/plain']);
 
 function update_state(key, val) {
     state[key] = val;
