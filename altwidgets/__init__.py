@@ -23,7 +23,7 @@ def altwidget_comm_target(comm, open_msg):
 
 ip.kernel.comm_manager.register_target('altwidget', altwidget_comm_target)
 
-class Receiver:
+class Replier:
     def __init__(self, callback):
         self.callback = callback
 
@@ -35,7 +35,7 @@ class Receiver:
         self.call_callback(data['data'], sender)
 
     def call_callback(self, data, comm):
-        result = self.callback(data)
+        result = self.callback(**data)
         format_dict, md_dict = ip.display_formatter.format(result)
         comm.send({
             'kind': 'result',
@@ -43,11 +43,21 @@ class Receiver:
             'metadata': md_dict,
         })
 
-def foo():
-    r = Receiver(lambda x: x['a']*x['b'])
+def interact(function, widget_defs):
+    r = Replier(function)
     awid = str(uuid.uuid4())
     registry[awid] = r
 
+    js_definitions = ("var awid = {!r};\n"
+                      "var widget_defs = {};\n")\
+                .format(awid, json.dumps(widget_defs, sort_keys=True))
+
+    js_file = os.path.join(os.path.dirname(__file__), 'foo.js')
+    with open(js_file) as f:
+        j = f.read().replace('/*DEFINITIONS_REPLACEMENT*/', js_definitions)
+    display(Javascript(j))
+
+def multiplier():
     widgets = [
         {'name': 'a',
          'kind': 'slider',
@@ -62,10 +72,5 @@ def foo():
          'value': 7
         },
     ]
-    js_definitions = ("var awid = {!r};\n"
-                      "var widget_defs = {};\n").format(awid, json.dumps(widgets))
+    interact(lambda a, b: a*b, widgets)
 
-    js_file = os.path.join(os.path.dirname(__file__), 'foo.js')
-    with open(js_file) as f:
-        j = f.read().replace('/*DEFINITIONS_REPLACEMENT*/', js_definitions)
-    display(Javascript(j))
