@@ -43,7 +43,7 @@ function connect() {
     });
 }
 
-if (IPython.notebook.kernel) {
+if (((typeof IPython) !== 'undefined') && IPython.notebook && IPython.notebook.kernel) {
     connect();
     IPython.notebook.kernel.events.on('kernel_restarting.Kernel', disable_widgets);
 } else {
