@@ -86,12 +86,27 @@ function update_state(key, val) {
 
 var widget_area = $('<div>').appendTo(element);
 
-for (i = 0; i < widget_defs.length; i++) {
-    wd = widget_defs[i];
-    var w = widget_factories[wd.kind](wd);
-    widget_area.append(w.dom);
-    widgets.push(w.js);
+function create_widgets() {
+    for (i = 0; i < widget_defs.length; i++) {
+        wd = widget_defs[i];
+        var w = widget_factories[wd.kind](wd);
+        widget_area.append(w.dom);
+        widgets.push(w.js);
+    }
+    widget_area.append(output_area);
 }
-widget_area.append(output_area);
+
+if ((typeof IPython) === 'undefined') {
+    // In nbconvert output or similar - load jquery ui
+    $('<link>').attr('rel', 'stylesheet')
+        .attr('href', 'https://code.jquery.com/ui/1.11.3/themes/smoothness/jquery-ui.css')
+        .appendTo(document.head)
+    requirejs(['https://code.jquery.com/ui/1.11.3/jquery-ui.min.js'],
+    function(jqui) {
+        create_widgets();
+    })
+} else {
+    create_widgets();
+}
 
 })();
