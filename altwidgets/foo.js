@@ -101,6 +101,7 @@ if ((typeof IPython) === 'undefined') {
     $('<link>').attr('rel', 'stylesheet')
         .attr('href', 'https://code.jquery.com/ui/1.11.3/themes/smoothness/jquery-ui.css')
         .appendTo(document.head)
+    $('<style>').text('.ui-slider-horizontal {width: 30em;}').appendTo(document.head);
     requirejs(['https://code.jquery.com/ui/1.11.3/jquery-ui.min.js'],
     function(jqui) {
         create_widgets();
